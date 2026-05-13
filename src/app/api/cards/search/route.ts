@@ -3,6 +3,17 @@ import { NextResponse } from "next/server";
 const BASE_URL = "https://api.pokemontcg.io/v2/cards";
 const SELECT = "id,name,number,rarity,images,set,tcgplayer,cardmarket";
 
+function buildNameQuery(query: string) {
+  const normalized = query.replace(/\s+/g, " ").trim();
+  const escaped = normalized.replace(/\\/g, "\\\\").replace(/"/g, '\\"');
+
+  if (/^[\p{L}\p{N}-]+$/u.test(normalized)) {
+    return `name:${escaped}*`;
+  }
+
+  return `name:"${escaped}"`;
+}
+
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
   const query = searchParams.get("q")?.trim();
@@ -12,7 +23,7 @@ export async function GET(request: Request) {
   }
 
   const upstreamUrl = new URL(BASE_URL);
-  upstreamUrl.searchParams.set("q", `name:${query}*`);
+  upstreamUrl.searchParams.set("q", buildNameQuery(query));
   upstreamUrl.searchParams.set("pageSize", "20");
   upstreamUrl.searchParams.set("select", SELECT);
 
@@ -28,8 +39,18 @@ export async function GET(request: Request) {
     });
 
     if (!response.ok) {
+      let details = "";
+      try {
+        const payload = await response.json();
+        details = payload?.error?.message ?? "";
+      } catch {
+        details = await response.text().catch(() => "");
+      }
+
       return NextResponse.json(
-        { error: "A API Pokemon TCG nao respondeu corretamente." },
+        {
+          error: details || "A API Pokemon TCG nao respondeu corretamente.",
+        },
         { status: response.status },
       );
     }
