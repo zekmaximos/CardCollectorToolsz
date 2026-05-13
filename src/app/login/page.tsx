@@ -16,11 +16,23 @@ export default function LoginPage() {
     event.preventDefault();
     setLoading(true);
     setMessage("");
-    const supabase = createClient();
-    const result =
-      mode === "login"
-        ? await supabase.auth.signInWithPassword({ email, password })
-        : await supabase.auth.signUp({ email, password });
+    let result;
+
+    try {
+      const supabase = createClient();
+      result =
+        mode === "login"
+          ? await supabase.auth.signInWithPassword({ email, password })
+          : await supabase.auth.signUp({ email, password });
+    } catch (error) {
+      setLoading(false);
+      setMessage(
+        error instanceof Error
+          ? error.message
+          : "Nao foi possivel conectar ao Supabase. Confira as variaveis do Vercel.",
+      );
+      return;
+    }
 
     setLoading(false);
     if (result.error) {
