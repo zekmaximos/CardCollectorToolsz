@@ -26,6 +26,8 @@ create table if not exists public.user_cards (
   language text,
   image_url text,
   market_price numeric,
+  market_currency text,
+  market_source text,
   user_value numeric,
   paid_price numeric,
   condition text,

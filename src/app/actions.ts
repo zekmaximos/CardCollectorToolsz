@@ -109,6 +109,8 @@ export async function addCardToAlbum(formData: FormData): Promise<void> {
     language: nullableText(formData.get("language")),
     image_url: nullableText(formData.get("image_url")),
     market_price: numberValue(formData.get("market_price")),
+    market_currency: nullableText(formData.get("market_currency")),
+    market_source: nullableText(formData.get("market_source")),
     user_value: numberValue(formData.get("user_value")),
     paid_price: numberValue(formData.get("paid_price")),
     condition: nullableText(formData.get("condition")),

@@ -9,6 +9,8 @@ export function UserCardItem({ card }: { card: UserCard }) {
   const selectedLanguage = languageOptions.includes(card.language ?? "")
     ? card.language ?? ""
     : languageOptions[0];
+  const marketCurrency = card.market_currency ?? "BRL";
+  const marketSource = card.market_source ? ` (${card.market_source})` : "";
 
   return (
     <article className="rounded-lg border border-slate-200 bg-white p-4 shadow-sm">
@@ -38,7 +40,10 @@ export function UserCardItem({ card }: { card: UserCard }) {
             <span className="rounded-md bg-slate-50 p-2">Qtd: {card.quantity}</span>
             <span className="rounded-md bg-slate-50 p-2">Pago: {money((card.paid_price ?? 0) * card.quantity)}</span>
             <span className="rounded-md bg-slate-50 p-2">Valor: {money((card.user_value ?? 0) * card.quantity)}</span>
-            <span className="rounded-md bg-slate-50 p-2">Mercado: {money(card.market_price)}</span>
+            <span className="rounded-md bg-slate-50 p-2">
+              Mercado: {money(card.market_price, marketCurrency)}
+              {marketSource}
+            </span>
           </div>
         </div>
       </div>

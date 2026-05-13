@@ -8,10 +8,35 @@ import type { Album, PokemonCardApiResult } from "@/types";
 
 const languageOptions = ["Inglês", "Português", "Japonês"];
 
-function estimatedPrice(card: PokemonCardApiResult) {
+function priceDetails(card: PokemonCardApiResult) {
+  if (card.marketPrice?.amount) {
+    return card.marketPrice;
+  }
+
   const tcgPrices = Object.values(card.tcgplayer?.prices ?? {});
   const tcgMarket = tcgPrices.find((price) => typeof price?.market === "number")?.market;
-  return tcgMarket ?? card.cardmarket?.prices?.averageSellPrice ?? card.cardmarket?.prices?.avg7 ?? 0;
+  if (tcgMarket) {
+    return {
+      amount: tcgMarket,
+      currency: "USD",
+      source: "TCGplayer",
+    };
+  }
+
+  const cardmarketPrice = card.cardmarket?.prices?.averageSellPrice ?? card.cardmarket?.prices?.avg7;
+  if (cardmarketPrice) {
+    return {
+      amount: cardmarketPrice,
+      currency: "EUR",
+      source: "Cardmarket",
+    };
+  }
+
+  return {
+    amount: 0,
+    currency: "BRL",
+    source: "",
+  };
 }
 
 export function CardSearchResult({ albums }: { albums: Album[] }) {
@@ -36,14 +61,20 @@ export function CardSearchResult({ albums }: { albums: Album[] }) {
 
     startTransition(async () => {
       try {
-        const response = await fetch(`/api/cards/search?q=${encodeURIComponent(q)}`);
+        const response = await fetch(
+          `/api/cards/search?q=${encodeURIComponent(q)}&lang=${encodeURIComponent(selectedLanguage)}`,
+        );
         const payload = await response.json();
         if (!response.ok) {
           throw new Error(payload.error ?? "Erro ao buscar cartas.");
         }
         setCards(payload.data ?? []);
         if (!payload.data?.length) {
-          setError("Nenhuma carta encontrada.");
+          setError(
+            selectedLanguage === "Japonês"
+              ? "Nenhuma carta encontrada. Para cartas japonesas, tente buscar pelo nome em japones."
+              : "Nenhuma carta encontrada.",
+          );
         }
       } catch (err) {
         setCards([]);
@@ -53,9 +84,10 @@ export function CardSearchResult({ albums }: { albums: Album[] }) {
   }
 
   const selectedPrice = useMemo(
-    () => (selectedCard ? estimatedPrice(selectedCard) : 0),
+    () => (selectedCard ? priceDetails(selectedCard).amount : 0),
     [selectedCard],
   );
+  const selectedPriceDetails = selectedCard ? priceDetails(selectedCard) : null;
 
   return (
     <div className="flex flex-col gap-5">
@@ -101,7 +133,10 @@ export function CardSearchResult({ albums }: { albums: Album[] }) {
                 {card.set?.name ?? "Set desconhecido"} #{card.number ?? "-"}
               </p>
               <p className="text-sm text-slate-600">{card.rarity ?? "Sem raridade"}</p>
-              <p className="text-sm font-semibold text-emerald-700">{money(estimatedPrice(card))}</p>
+              <p className="text-sm font-semibold text-emerald-700">
+                {money(priceDetails(card).amount, priceDetails(card).currency)}
+              </p>
+              {priceDetails(card).source ? <p className="text-xs text-slate-500">{priceDetails(card).source}</p> : null}
             </div>
             <button
               disabled={!hasAlbums}
@@ -142,6 +177,8 @@ export function CardSearchResult({ albums }: { albums: Album[] }) {
               <input type="hidden" name="rarity" value={selectedCard.rarity ?? ""} />
               <input type="hidden" name="image_url" value={selectedCard.images?.large ?? selectedCard.images?.small ?? ""} />
               <input type="hidden" name="market_price" value={selectedPrice} />
+              <input type="hidden" name="market_currency" value={selectedPriceDetails?.currency ?? ""} />
+              <input type="hidden" name="market_source" value={selectedPriceDetails?.source ?? ""} />
               <select name="album_id" required className="rounded-md border border-slate-300 px-3 py-2 text-sm">
                 {albums.map((album) => (
                   <option key={album.id} value={album.id}>
@@ -164,7 +201,7 @@ export function CardSearchResult({ albums }: { albums: Album[] }) {
               <input name="condition" placeholder="Condicao" className="rounded-md border border-slate-300 px-3 py-2 text-sm" />
               <input name="quantity" type="number" min="1" defaultValue="1" className="rounded-md border border-slate-300 px-3 py-2 text-sm" />
               <input name="paid_price" type="number" min="0" step="0.01" placeholder="Valor pago" className="rounded-md border border-slate-300 px-3 py-2 text-sm" />
-              <input name="user_value" type="number" min="0" step="0.01" defaultValue={selectedPrice} placeholder="Valor considerado" className="rounded-md border border-slate-300 px-3 py-2 text-sm" />
+              <input name="user_value" type="number" min="0" step="0.01" defaultValue={selectedPrice} placeholder={`Valor considerado (${selectedPriceDetails?.currency ?? "BRL"})`} className="rounded-md border border-slate-300 px-3 py-2 text-sm" />
               <textarea name="notes" placeholder="Observacoes" className="rounded-md border border-slate-300 px-3 py-2 text-sm sm:col-span-2" />
               <button className="inline-flex items-center justify-center gap-2 rounded-md bg-slate-950 px-4 py-2 text-sm font-semibold text-white hover:bg-slate-800">
                 <Plus className="size-4" />

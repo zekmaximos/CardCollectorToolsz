@@ -1,8 +1,15 @@
 export type PokemonCardApiResult = {
   id: string;
   name: string;
+  language?: string | null;
+  source?: "pokemontcg" | "tcgdex";
   number?: string | null;
   rarity?: string | null;
+  marketPrice?: {
+    amount: number;
+    currency: string;
+    source: string;
+  } | null;
   images?: {
     small?: string;
     large?: string;
@@ -45,6 +52,8 @@ export type UserCard = {
   language: string | null;
   image_url: string | null;
   market_price: number | null;
+  market_currency: string | null;
+  market_source: string | null;
   user_value: number | null;
   paid_price: number | null;
   condition: string | null;

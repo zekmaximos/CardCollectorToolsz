@@ -1,7 +1,7 @@
-export function money(value: number | null | undefined) {
+export function money(value: number | null | undefined, currency = "BRL") {
   return new Intl.NumberFormat("pt-BR", {
     style: "currency",
-    currency: "BRL",
+    currency,
   }).format(Number(value ?? 0));
 }
 
