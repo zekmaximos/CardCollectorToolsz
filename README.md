@@ -31,7 +31,7 @@ npm install
 2. Crie `.env.local` usando `.env.example`:
 
 ```bash
-NEXT_PUBLIC_SUPABASE_URL=https://woekkhvdoaortvslebdk.supabase.co
+NEXT_PUBLIC_SUPABASE_URL=https://seu-project-ref.supabase.co
 NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY=sua_publishable_key
 NEXT_PUBLIC_SUPABASE_ANON_KEY=sua_publishable_key
 SUPABASE_SERVICE_ROLE_KEY=
@@ -56,7 +56,7 @@ No projeto Vercel conectado ao GitHub, configure:
 - `POKEMON_TCG_API_KEY` opcional, recomendada para maior limite de API
 - `SUPABASE_SERVICE_ROLE_KEY` somente se uma futura rota server-side realmente precisar; este MVP nao usa no frontend nem no codigo atual
 
-Depois de salvar as variaveis, faca redeploy. Como o Vercel esta conectado ao GitHub, pushes na branch principal disparam novo deploy.
+Depois de salvar as variaveis, faca redeploy. Como o Vercel injeta variaveis publicas no build do Next.js, trocar de Supabase exige redeploy para gerar um novo bundle apontando para o projeto novo.
 
 ## Seguranca
 
