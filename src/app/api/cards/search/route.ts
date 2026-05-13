@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 
 const TCGDEX_BASE_URL = "https://api.tcgdex.net/v2";
 const POKEMON_TCG_BASE_URL = "https://api.pokemontcg.io/v2/cards";
+const POKEAPI_SPECIES_BASE_URL = "https://pokeapi.co/api/v2/pokemon-species";
 const POKEMON_TCG_SELECT = "id,name,number,rarity,images,set,tcgplayer,cardmarket";
 const MAX_RESULTS = 40;
 
@@ -217,6 +218,46 @@ async function searchTcgDex(query: string, language: ReturnType<typeof resolveLa
   return details.map((card) => normalizeTcgDexCard(card, language));
 }
 
+function pokemonNameCandidates(query: string) {
+  const stopWords = new Set(["mega", "ex", "gx", "v", "vmax", "vstar", "x", "y"]);
+
+  return query
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .split(/[^a-z0-9]+/)
+    .map((part) => part.trim())
+    .filter((part) => part.length > 2 && !stopWords.has(part))
+    .slice(0, 5);
+}
+
+async function japanesePokemonNameFromEnglishQuery(query: string) {
+  for (const candidate of pokemonNameCandidates(query)) {
+    try {
+      const response = await fetch(`${POKEAPI_SPECIES_BASE_URL}/${encodeURIComponent(candidate)}`, {
+        next: { revalidate: 86_400 },
+      });
+
+      if (!response.ok) {
+        continue;
+      }
+
+      const payload = (await response.json()) as {
+        names?: { language?: { name?: string }; name?: string }[];
+      };
+      const japaneseName = payload.names?.find((name) => name.language?.name === "ja")?.name;
+
+      if (japaneseName) {
+        return japaneseName;
+      }
+    } catch {
+      // Keep the search flow resilient when PokeAPI is unavailable.
+    }
+  }
+
+  return null;
+}
+
 function buildPokemonTcgNameQuery(query: string) {
   const normalized = query.replace(/\s+/g, " ").trim();
   const escaped = normalized.replace(/\\/g, "\\\\").replace(/"/g, '\\"');
@@ -252,16 +293,29 @@ function pickPokemonTcgMarketPrice(card: PokemonTcgCard): MarketPrice {
   return null;
 }
 
-function normalizePokemonTcgCard(card: PokemonTcgCard) {
+function normalizePokemonTcgCard(
+  card: PokemonTcgCard,
+  language: ReturnType<typeof resolveLanguage> = languageConfig.en,
+) {
+  const price = pickPokemonTcgMarketPrice(card);
+
   return {
     ...card,
     source: "pokemontcg",
-    language: languageConfig.en.label,
-    marketPrice: pickPokemonTcgMarketPrice(card),
+    language: language.label,
+    marketPrice: price
+      ? {
+          ...price,
+          source: language.code === "en" ? price.source : `${price.source} referencia EN`,
+        }
+      : null,
   };
 }
 
-async function searchPokemonTcg(query: string) {
+async function searchPokemonTcg(
+  query: string,
+  language: ReturnType<typeof resolveLanguage> = languageConfig.en,
+) {
   const upstreamUrl = new URL(POKEMON_TCG_BASE_URL);
   upstreamUrl.searchParams.set("q", buildPokemonTcgNameQuery(query));
   upstreamUrl.searchParams.set("pageSize", String(MAX_RESULTS));
@@ -283,7 +337,7 @@ async function searchPokemonTcg(query: string) {
   }
 
   const payload = await response.json();
-  return ((payload.data ?? []) as PokemonTcgCard[]).map(normalizePokemonTcgCard);
+  return ((payload.data ?? []) as PokemonTcgCard[]).map((card) => normalizePokemonTcgCard(card, language));
 }
 
 function mergeCards(primary: ReturnType<typeof normalizePokemonTcgCard>[], secondary: ReturnType<typeof normalizeTcgDexCard>[]) {
@@ -323,7 +377,23 @@ export async function GET(request: Request) {
 
     const tcgDexResults = await searchTcgDex(query, language);
 
-    return NextResponse.json({ data: tcgDexResults });
+    if (tcgDexResults.length > 0) {
+      return NextResponse.json({ data: tcgDexResults });
+    }
+
+    if (language.code === "ja") {
+      const japaneseQuery = await japanesePokemonNameFromEnglishQuery(query);
+
+      if (japaneseQuery && japaneseQuery !== query) {
+        const translatedResults = await searchTcgDex(japaneseQuery, language).catch(() => []);
+
+        if (translatedResults.length > 0) {
+          return NextResponse.json({ data: translatedResults });
+        }
+      }
+    }
+
+    return NextResponse.json({ data: await searchPokemonTcg(query, language).catch(() => []) });
   } catch (error) {
     return NextResponse.json(
       {
