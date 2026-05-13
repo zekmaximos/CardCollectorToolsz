@@ -14,7 +14,7 @@ export default async function AlbumsPage() {
 
   if (!user) redirect("/login");
 
-  const { data } = await supabase
+  const { data, error } = await supabase
     .from("albums")
     .select("*")
     .eq("user_id", user.id)
@@ -25,6 +25,16 @@ export default async function AlbumsPage() {
   return (
     <AppLayout title="Albuns" subtitle="Organize suas cartas por colecao, deck, objetivo ou investimento.">
       <AlbumForm />
+      {error ? (
+        <div className="rounded-lg border border-amber-200 bg-amber-50 p-4 text-sm text-amber-950">
+          <p className="font-semibold">Nao foi possivel carregar os albuns.</p>
+          <p className="mt-1">
+            {error.code === "42P01" || error.code === "PGRST205"
+              ? "As tabelas do Supabase ainda nao foram criadas. Rode o SQL de database/schema.sql no Supabase."
+              : error.message}
+          </p>
+        </div>
+      ) : null}
       {albums.length === 0 ? (
         <EmptyState title="Nenhum album criado" description="Crie um album para comecar a adicionar cartas pesquisadas na API." />
       ) : (

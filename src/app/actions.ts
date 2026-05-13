@@ -5,6 +5,29 @@ import { redirect } from "next/navigation";
 import { nullableText, numberValue, todayIso } from "@/lib/format";
 import { createClient } from "@/utils/supabase/server";
 
+export type ActionState = {
+  ok: boolean;
+  message: string;
+};
+
+const initialActionState: ActionState = { ok: false, message: "" };
+
+function friendlyDatabaseError(error: { code?: string; message?: string } | null) {
+  if (!error) {
+    return "Nao foi possivel salvar agora.";
+  }
+
+  if (error.code === "42P01" || error.code === "PGRST205") {
+    return "As tabelas do Supabase ainda nao foram criadas. Rode o SQL de database/schema.sql no Supabase.";
+  }
+
+  if (error.message?.toLowerCase().includes("row-level security")) {
+    return "O Supabase bloqueou a gravacao por RLS. Confira as policies do arquivo database/schema.sql.";
+  }
+
+  return error.message ?? "Nao foi possivel salvar agora.";
+}
+
 async function requireUser() {
   const supabase = await createClient();
   const {
@@ -25,12 +48,19 @@ export async function signOut(): Promise<void> {
 }
 
 export async function createAlbum(formData: FormData): Promise<void> {
+  await createAlbumWithState(initialActionState, formData);
+}
+
+export async function createAlbumWithState(
+  _previousState: ActionState,
+  formData: FormData,
+): Promise<ActionState> {
   const { supabase, user } = await requireUser();
   const name = String(formData.get("name") ?? "").trim();
   const description = nullableText(formData.get("description"));
 
   if (!name) {
-    return;
+    return { ok: false, message: "Informe um nome para o album." };
   }
 
   const { error } = await supabase.from("albums").insert({
@@ -40,10 +70,11 @@ export async function createAlbum(formData: FormData): Promise<void> {
   });
 
   if (error) {
-    return;
+    return { ok: false, message: friendlyDatabaseError(error) };
   }
 
   revalidatePath("/albums");
+  return { ok: true, message: "Album criado com sucesso." };
 }
 
 export async function addCardToAlbum(formData: FormData): Promise<void> {
