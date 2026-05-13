@@ -1,0 +1,153 @@
+"use client";
+
+import { useMemo, useState, useTransition } from "react";
+import { Plus, Search } from "lucide-react";
+import { addCardToAlbum } from "@/app/actions";
+import { money } from "@/lib/format";
+import type { Album, PokemonCardApiResult } from "@/types";
+
+function estimatedPrice(card: PokemonCardApiResult) {
+  const tcgPrices = Object.values(card.tcgplayer?.prices ?? {});
+  const tcgMarket = tcgPrices.find((price) => typeof price?.market === "number")?.market;
+  return tcgMarket ?? card.cardmarket?.prices?.averageSellPrice ?? card.cardmarket?.prices?.avg7 ?? 0;
+}
+
+export function CardSearchResult({ albums }: { albums: Album[] }) {
+  const [query, setQuery] = useState("");
+  const [cards, setCards] = useState<PokemonCardApiResult[]>([]);
+  const [error, setError] = useState("");
+  const [selectedCard, setSelectedCard] = useState<PokemonCardApiResult | null>(null);
+  const [isPending, startTransition] = useTransition();
+
+  const hasAlbums = albums.length > 0;
+
+  function searchCards(event: React.FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    setError("");
+    const q = query.trim();
+    if (!q) {
+      setCards([]);
+      setError("Digite o nome de uma carta para buscar.");
+      return;
+    }
+
+    startTransition(async () => {
+      try {
+        const response = await fetch(`/api/cards/search?q=${encodeURIComponent(q)}`);
+        const payload = await response.json();
+        if (!response.ok) {
+          throw new Error(payload.error ?? "Erro ao buscar cartas.");
+        }
+        setCards(payload.data ?? []);
+        if (!payload.data?.length) {
+          setError("Nenhuma carta encontrada.");
+        }
+      } catch (err) {
+        setCards([]);
+        setError(err instanceof Error ? err.message : "A API externa nao respondeu.");
+      }
+    });
+  }
+
+  const selectedPrice = useMemo(
+    () => (selectedCard ? estimatedPrice(selectedCard) : 0),
+    [selectedCard],
+  );
+
+  return (
+    <div className="flex flex-col gap-5">
+      <form onSubmit={searchCards} className="flex flex-col gap-3 rounded-lg border border-slate-200 bg-white p-4 shadow-sm sm:flex-row">
+        <input
+          value={query}
+          onChange={(event) => setQuery(event.target.value)}
+          placeholder="Buscar por nome, ex: charizard"
+          className="min-h-11 flex-1 rounded-md border border-slate-300 px-3 py-2 text-sm outline-none focus:border-emerald-500"
+        />
+        <button className="inline-flex min-h-11 items-center justify-center gap-2 rounded-md bg-slate-950 px-4 py-2 text-sm font-semibold text-white hover:bg-slate-800">
+          <Search className="size-4" />
+          {isPending ? "Buscando..." : "Buscar"}
+        </button>
+      </form>
+
+      {error ? <p className="rounded-md border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">{error}</p> : null}
+
+      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+        {cards.map((card) => (
+          <article key={card.id} className="flex flex-col rounded-lg border border-slate-200 bg-white p-4 shadow-sm">
+            {card.images?.small ? (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img src={card.images.small} alt={card.name} className="mx-auto h-64 rounded-md object-contain" loading="lazy" />
+            ) : (
+              <div className="h-64 rounded-md bg-slate-100" />
+            )}
+            <div className="mt-4 flex flex-1 flex-col gap-2">
+              <h2 className="font-semibold text-slate-950">{card.name}</h2>
+              <p className="text-sm text-slate-600">
+                {card.set?.name ?? "Set desconhecido"} #{card.number ?? "-"}
+              </p>
+              <p className="text-sm text-slate-600">{card.rarity ?? "Sem raridade"}</p>
+              <p className="text-sm font-semibold text-emerald-700">{money(estimatedPrice(card))}</p>
+            </div>
+            <button
+              disabled={!hasAlbums}
+              onClick={() => setSelectedCard(card)}
+              className="mt-4 inline-flex items-center justify-center gap-2 rounded-md bg-emerald-700 px-4 py-2 text-sm font-semibold text-white hover:bg-emerald-800 disabled:cursor-not-allowed disabled:bg-slate-300"
+            >
+              <Plus className="size-4" />
+              Adicionar ao album
+            </button>
+          </article>
+        ))}
+      </div>
+
+      {!hasAlbums ? (
+        <p className="rounded-md border border-slate-200 bg-white px-4 py-3 text-sm text-slate-600">
+          Crie um album antes de adicionar cartas.
+        </p>
+      ) : null}
+
+      {selectedCard ? (
+        <div className="fixed inset-0 z-50 grid place-items-center bg-slate-950/50 p-4">
+          <div className="max-h-[90vh] w-full max-w-2xl overflow-auto rounded-lg bg-white p-5 shadow-xl">
+            <div className="flex items-start justify-between gap-4">
+              <div>
+                <h2 className="text-xl font-bold text-slate-950">{selectedCard.name}</h2>
+                <p className="text-sm text-slate-600">{selectedCard.set?.name ?? "Set desconhecido"}</p>
+              </div>
+              <button onClick={() => setSelectedCard(null)} className="rounded-md px-3 py-1 text-sm font-semibold text-slate-600 hover:bg-slate-100">
+                Fechar
+              </button>
+            </div>
+
+            <form action={addCardToAlbum} className="mt-5 grid gap-3 sm:grid-cols-2">
+              <input type="hidden" name="external_card_id" value={selectedCard.id} />
+              <input type="hidden" name="name" value={selectedCard.name} />
+              <input type="hidden" name="set_name" value={selectedCard.set?.name ?? ""} />
+              <input type="hidden" name="card_number" value={selectedCard.number ?? ""} />
+              <input type="hidden" name="rarity" value={selectedCard.rarity ?? ""} />
+              <input type="hidden" name="image_url" value={selectedCard.images?.large ?? selectedCard.images?.small ?? ""} />
+              <input type="hidden" name="market_price" value={selectedPrice} />
+              <select name="album_id" required className="rounded-md border border-slate-300 px-3 py-2 text-sm">
+                {albums.map((album) => (
+                  <option key={album.id} value={album.id}>
+                    {album.name}
+                  </option>
+                ))}
+              </select>
+              <input name="language" placeholder="Idioma/nacionalidade" className="rounded-md border border-slate-300 px-3 py-2 text-sm" />
+              <input name="condition" placeholder="Condicao" className="rounded-md border border-slate-300 px-3 py-2 text-sm" />
+              <input name="quantity" type="number" min="1" defaultValue="1" className="rounded-md border border-slate-300 px-3 py-2 text-sm" />
+              <input name="paid_price" type="number" min="0" step="0.01" placeholder="Valor pago" className="rounded-md border border-slate-300 px-3 py-2 text-sm" />
+              <input name="user_value" type="number" min="0" step="0.01" defaultValue={selectedPrice} placeholder="Valor considerado" className="rounded-md border border-slate-300 px-3 py-2 text-sm" />
+              <textarea name="notes" placeholder="Observacoes" className="rounded-md border border-slate-300 px-3 py-2 text-sm sm:col-span-2" />
+              <button className="inline-flex items-center justify-center gap-2 rounded-md bg-slate-950 px-4 py-2 text-sm font-semibold text-white hover:bg-slate-800">
+                <Plus className="size-4" />
+                Salvar carta
+              </button>
+            </form>
+          </div>
+        </div>
+      ) : null}
+    </div>
+  );
+}
