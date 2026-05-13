@@ -4,6 +4,7 @@ import { money } from "@/lib/format";
 import type { UserCard } from "@/types";
 
 const languageOptions = ["Inglês", "Português", "Japonês"];
+const currencyOptions = ["BRL", "USD", "EUR", "JPY"];
 
 export function UserCardItem({ card }: { card: UserCard }) {
   const selectedLanguage = languageOptions.includes(card.language ?? "")
@@ -69,6 +70,21 @@ export function UserCardItem({ card }: { card: UserCard }) {
           <input name="quantity" type="number" min="1" defaultValue={card.quantity} className="rounded-md border border-slate-300 px-3 py-2 text-sm" />
           <input name="paid_price" type="number" step="0.01" min="0" defaultValue={card.paid_price ?? 0} className="rounded-md border border-slate-300 px-3 py-2 text-sm" />
           <input name="user_value" type="number" step="0.01" min="0" defaultValue={card.user_value ?? 0} className="rounded-md border border-slate-300 px-3 py-2 text-sm" />
+          <input name="market_price" type="number" step="0.01" min="0" defaultValue={card.market_price ?? 0} className="rounded-md border border-slate-300 px-3 py-2 text-sm" />
+          <select
+            name="market_currency"
+            defaultValue={marketCurrency}
+            className="rounded-md border border-slate-300 px-3 py-2 text-sm"
+            aria-label="Moeda do valor de mercado"
+          >
+            {currencyOptions.map((currency) => (
+              <option key={currency} value={currency}>
+                {currency}
+              </option>
+            ))}
+          </select>
+          <input name="market_source" defaultValue={card.market_source ?? "Manual"} placeholder="Fonte do valor" className="rounded-md border border-slate-300 px-3 py-2 text-sm" />
+          <input name="image_url" type="url" defaultValue={card.image_url ?? ""} placeholder="URL da imagem de referencia" className="rounded-md border border-slate-300 px-3 py-2 text-sm sm:col-span-2" />
           <textarea name="notes" defaultValue={card.notes ?? ""} placeholder="Observacoes" className="rounded-md border border-slate-300 px-3 py-2 text-sm sm:col-span-2" />
           <button className="inline-flex items-center justify-center gap-2 rounded-md bg-slate-950 px-4 py-2 text-sm font-semibold text-white hover:bg-slate-800">
             <Save className="size-4" />

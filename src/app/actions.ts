@@ -1,5 +1,6 @@
 "use server";
 
+import { randomUUID } from "crypto";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { nullableText, numberValue, todayIso } from "@/lib/format";
@@ -80,10 +81,10 @@ export async function createAlbumWithState(
 export async function addCardToAlbum(formData: FormData): Promise<void> {
   const { supabase, user } = await requireUser();
   const albumId = String(formData.get("album_id") ?? "");
-  const externalCardId = String(formData.get("external_card_id") ?? "");
+  const externalCardId = String(formData.get("external_card_id") ?? "").trim();
   const name = String(formData.get("name") ?? "").trim();
 
-  if (!albumId || !externalCardId || !name) {
+  if (!albumId || !name) {
     return;
   }
 
@@ -98,19 +99,24 @@ export async function addCardToAlbum(formData: FormData): Promise<void> {
     return;
   }
 
+  const imageUrl = nullableText(formData.get("image_url_override")) ?? nullableText(formData.get("image_url"));
+  const marketSource =
+    nullableText(formData.get("market_source")) ??
+    (externalCardId ? null : "Manual");
+
   const { error } = await supabase.from("user_cards").insert({
     user_id: user.id,
     album_id: albumId,
-    external_card_id: externalCardId,
+    external_card_id: externalCardId || `manual-${randomUUID()}`,
     name,
     set_name: nullableText(formData.get("set_name")),
     card_number: nullableText(formData.get("card_number")),
     rarity: nullableText(formData.get("rarity")),
     language: nullableText(formData.get("language")),
-    image_url: nullableText(formData.get("image_url")),
+    image_url: imageUrl,
     market_price: numberValue(formData.get("market_price")),
     market_currency: nullableText(formData.get("market_currency")),
-    market_source: nullableText(formData.get("market_source")),
+    market_source: marketSource,
     user_value: numberValue(formData.get("user_value")),
     paid_price: numberValue(formData.get("paid_price")),
     condition: nullableText(formData.get("condition")),
@@ -141,6 +147,10 @@ export async function updateUserCard(formData: FormData): Promise<void> {
     .from("user_cards")
     .update({
       language: nullableText(formData.get("language")),
+      image_url: nullableText(formData.get("image_url")),
+      market_price: numberValue(formData.get("market_price")),
+      market_currency: nullableText(formData.get("market_currency")),
+      market_source: nullableText(formData.get("market_source")),
       condition: nullableText(formData.get("condition")),
       quantity: Math.max(1, Math.trunc(numberValue(formData.get("quantity")) || 1)),
       paid_price: numberValue(formData.get("paid_price")),

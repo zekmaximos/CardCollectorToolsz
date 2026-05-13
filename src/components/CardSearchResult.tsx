@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo, useState, useTransition } from "react";
-import { Plus, Search } from "lucide-react";
+import { ImagePlus, Plus, Search } from "lucide-react";
 import { addCardToAlbum } from "@/app/actions";
 import { money } from "@/lib/format";
 import type { Album, PokemonCardApiResult } from "@/types";
@@ -118,6 +118,59 @@ export function CardSearchResult({ albums }: { albums: Album[] }) {
 
       {error ? <p className="rounded-md border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">{error}</p> : null}
 
+      <section className="rounded-lg border border-slate-200 bg-white p-4 shadow-sm">
+        <div className="flex items-center gap-2">
+          <ImagePlus className="size-5 text-emerald-700" />
+          <h2 className="font-semibold text-slate-950">Cadastrar carta manual</h2>
+        </div>
+        <form action={addCardToAlbum} className="mt-4 grid gap-3 md:grid-cols-4">
+          <select name="album_id" required className="min-h-11 rounded-md border border-slate-300 px-3 py-2 text-sm">
+            {albums.map((album) => (
+              <option key={album.id} value={album.id}>
+                {album.name}
+              </option>
+            ))}
+          </select>
+          <input name="name" required placeholder="Nome da carta" className="min-h-11 rounded-md border border-slate-300 px-3 py-2 text-sm" />
+          <select
+            name="language"
+            defaultValue={selectedLanguage}
+            className="min-h-11 rounded-md border border-slate-300 px-3 py-2 text-sm"
+            aria-label="Nacionalidade da carta manual"
+          >
+            {languageOptions.map((language) => (
+              <option key={language} value={language}>
+                {language}
+              </option>
+            ))}
+          </select>
+          <input name="user_value" type="number" min="0" step="0.01" placeholder="Valor considerado" className="min-h-11 rounded-md border border-slate-300 px-3 py-2 text-sm" />
+          <input name="set_name" placeholder="Colecao/set" className="min-h-11 rounded-md border border-slate-300 px-3 py-2 text-sm" />
+          <input name="card_number" placeholder="Numero" className="min-h-11 rounded-md border border-slate-300 px-3 py-2 text-sm" />
+          <input name="rarity" placeholder="Raridade" className="min-h-11 rounded-md border border-slate-300 px-3 py-2 text-sm" />
+          <input name="market_price" type="number" min="0" step="0.01" placeholder="Valor de mercado" className="min-h-11 rounded-md border border-slate-300 px-3 py-2 text-sm" />
+          <input name="image_url" type="url" placeholder="URL da imagem de referencia" className="min-h-11 rounded-md border border-slate-300 px-3 py-2 text-sm md:col-span-2" />
+          <select name="market_currency" defaultValue="BRL" className="min-h-11 rounded-md border border-slate-300 px-3 py-2 text-sm" aria-label="Moeda do valor manual">
+            <option value="BRL">BRL</option>
+            <option value="USD">USD</option>
+            <option value="EUR">EUR</option>
+            <option value="JPY">JPY</option>
+          </select>
+          <input name="paid_price" type="number" min="0" step="0.01" placeholder="Valor pago" className="min-h-11 rounded-md border border-slate-300 px-3 py-2 text-sm" />
+          <input name="condition" placeholder="Condicao" className="min-h-11 rounded-md border border-slate-300 px-3 py-2 text-sm" />
+          <input name="quantity" type="number" min="1" defaultValue="1" className="min-h-11 rounded-md border border-slate-300 px-3 py-2 text-sm" />
+          <textarea name="notes" placeholder="Observacoes" className="min-h-11 rounded-md border border-slate-300 px-3 py-2 text-sm md:col-span-3" />
+          <input type="hidden" name="market_source" value="Manual" />
+          <button
+            disabled={!hasAlbums}
+            className="inline-flex min-h-11 items-center justify-center gap-2 rounded-md bg-emerald-700 px-4 py-2 text-sm font-semibold text-white hover:bg-emerald-800 disabled:cursor-not-allowed disabled:bg-slate-300"
+          >
+            <Plus className="size-4" />
+            Criar carta
+          </button>
+        </form>
+      </section>
+
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         {cards.map((card) => (
           <article key={card.id} className="flex flex-col rounded-lg border border-slate-200 bg-white p-4 shadow-sm">
@@ -202,6 +255,7 @@ export function CardSearchResult({ albums }: { albums: Album[] }) {
               <input name="quantity" type="number" min="1" defaultValue="1" className="rounded-md border border-slate-300 px-3 py-2 text-sm" />
               <input name="paid_price" type="number" min="0" step="0.01" placeholder="Valor pago" className="rounded-md border border-slate-300 px-3 py-2 text-sm" />
               <input name="user_value" type="number" min="0" step="0.01" defaultValue={selectedPrice} placeholder={`Valor considerado (${selectedPriceDetails?.currency ?? "BRL"})`} className="rounded-md border border-slate-300 px-3 py-2 text-sm" />
+              <input name="image_url_override" type="url" placeholder="URL de imagem alternativa" className="rounded-md border border-slate-300 px-3 py-2 text-sm sm:col-span-2" />
               <textarea name="notes" placeholder="Observacoes" className="rounded-md border border-slate-300 px-3 py-2 text-sm sm:col-span-2" />
               <button className="inline-flex items-center justify-center gap-2 rounded-md bg-slate-950 px-4 py-2 text-sm font-semibold text-white hover:bg-slate-800">
                 <Plus className="size-4" />
