@@ -375,6 +375,15 @@ export async function GET(request: Request) {
       return NextResponse.json({ data: mergeCards(pokemonTcgResults, tcgDexResults) });
     }
 
+    if (language.code === "pt-br") {
+      const [pokemonTcgResults, tcgDexResults] = await Promise.all([
+        searchPokemonTcg(query, language).catch(() => []),
+        searchTcgDex(query, language).catch(() => []),
+      ]);
+
+      return NextResponse.json({ data: mergeCards(pokemonTcgResults, tcgDexResults) });
+    }
+
     const tcgDexResults = await searchTcgDex(query, language);
 
     if (tcgDexResults.length > 0) {
