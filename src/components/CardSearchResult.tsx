@@ -6,6 +6,8 @@ import { addCardToAlbum } from "@/app/actions";
 import { money } from "@/lib/format";
 import type { Album, PokemonCardApiResult } from "@/types";
 
+const languageOptions = ["Inglês", "Português", "Japonês"];
+
 function estimatedPrice(card: PokemonCardApiResult) {
   const tcgPrices = Object.values(card.tcgplayer?.prices ?? {});
   const tcgMarket = tcgPrices.find((price) => typeof price?.market === "number")?.market;
@@ -14,6 +16,7 @@ function estimatedPrice(card: PokemonCardApiResult) {
 
 export function CardSearchResult({ albums }: { albums: Album[] }) {
   const [query, setQuery] = useState("");
+  const [selectedLanguage, setSelectedLanguage] = useState(languageOptions[0]);
   const [cards, setCards] = useState<PokemonCardApiResult[]>([]);
   const [error, setError] = useState("");
   const [selectedCard, setSelectedCard] = useState<PokemonCardApiResult | null>(null);
@@ -56,13 +59,25 @@ export function CardSearchResult({ albums }: { albums: Album[] }) {
 
   return (
     <div className="flex flex-col gap-5">
-      <form onSubmit={searchCards} className="flex flex-col gap-3 rounded-lg border border-slate-200 bg-white p-4 shadow-sm sm:flex-row">
+      <form onSubmit={searchCards} className="grid gap-3 rounded-lg border border-slate-200 bg-white p-4 shadow-sm md:grid-cols-[1fr_180px_auto]">
         <input
           value={query}
           onChange={(event) => setQuery(event.target.value)}
           placeholder="Buscar por nome, ex: charizard"
           className="min-h-11 flex-1 rounded-md border border-slate-300 px-3 py-2 text-sm outline-none focus:border-emerald-500"
         />
+        <select
+          value={selectedLanguage}
+          onChange={(event) => setSelectedLanguage(event.target.value)}
+          className="min-h-11 rounded-md border border-slate-300 px-3 py-2 text-sm outline-none focus:border-emerald-500"
+          aria-label="Nacionalidade da carta"
+        >
+          {languageOptions.map((language) => (
+            <option key={language} value={language}>
+              {language}
+            </option>
+          ))}
+        </select>
         <button className="inline-flex min-h-11 items-center justify-center gap-2 rounded-md bg-slate-950 px-4 py-2 text-sm font-semibold text-white hover:bg-slate-800">
           <Search className="size-4" />
           {isPending ? "Buscando..." : "Buscar"}
@@ -134,7 +149,18 @@ export function CardSearchResult({ albums }: { albums: Album[] }) {
                   </option>
                 ))}
               </select>
-              <input name="language" placeholder="Idioma/nacionalidade" className="rounded-md border border-slate-300 px-3 py-2 text-sm" />
+              <select
+                name="language"
+                defaultValue={selectedLanguage}
+                className="rounded-md border border-slate-300 px-3 py-2 text-sm"
+                aria-label="Nacionalidade da carta"
+              >
+                {languageOptions.map((language) => (
+                  <option key={language} value={language}>
+                    {language}
+                  </option>
+                ))}
+              </select>
               <input name="condition" placeholder="Condicao" className="rounded-md border border-slate-300 px-3 py-2 text-sm" />
               <input name="quantity" type="number" min="1" defaultValue="1" className="rounded-md border border-slate-300 px-3 py-2 text-sm" />
               <input name="paid_price" type="number" min="0" step="0.01" placeholder="Valor pago" className="rounded-md border border-slate-300 px-3 py-2 text-sm" />
