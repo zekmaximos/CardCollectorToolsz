@@ -24,13 +24,21 @@ export default async function ExpensesPage() {
 
   if (!user) redirect("/login");
 
-  const { data } = await supabase
-    .from("expenses")
-    .select("*")
-    .eq("user_id", user.id)
-    .order("expense_date", { ascending: false });
+  const [{ data }, { data: pullRates }] = await Promise.all([
+    supabase
+      .from("expenses")
+      .select("*")
+      .eq("user_id", user.id)
+      .order("expense_date", { ascending: false }),
+    supabase
+      .from("pokemon_tcg_pull_rates")
+      .select("set_name")
+      .eq("is_active", true)
+      .order("set_name", { ascending: true }),
+  ]);
 
   const expenses = (data ?? []) as Expense[];
+  const boosterCollections = [...new Set((pullRates ?? []).map((rate) => String(rate.set_name)).filter(Boolean))];
   const today = todayIso();
   const weekStart = startOfCurrentWeek();
   const monthPrefix = today.slice(0, 7);
@@ -42,7 +50,7 @@ export default async function ExpensesPage() {
 
   return (
     <AppLayout title="Gastos" subtitle="Registre boosters, boxes, cartas avulsas, acessorios e outros custos.">
-      <ExpenseForm />
+      <ExpenseForm boosterCollections={boosterCollections} />
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <StatCard label="Hoje" value={money(totalToday)} icon={CalendarDays} />
         <StatCard label="Semana atual" value={money(totalWeek)} icon={CalendarDays} />

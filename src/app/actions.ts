@@ -223,5 +223,6 @@ export async function createExpense(formData: FormData): Promise<void> {
 
   revalidatePath("/dashboard");
   revalidatePath("/expenses");
+  revalidatePath("/pull-rate");
   revalidatePath("/reports");
 }
