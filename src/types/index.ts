@@ -79,6 +79,22 @@ export type Expense = {
   created_at: string;
 };
 
+export type PullRate = {
+  id: string;
+  set_name: string;
+  set_slug: string;
+  rarity_name: string;
+  rarity_slug: string;
+  rarity_group: string;
+  odds_one_in: number;
+  is_major_hit: boolean;
+  is_premium_hit: boolean;
+  source_note: string | null;
+  is_active: boolean;
+  created_at: string;
+  updated_at: string;
+};
+
 export type DashboardStats = {
   total_cards: number;
   total_paid_cards: number;

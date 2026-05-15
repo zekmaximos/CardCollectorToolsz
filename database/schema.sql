@@ -62,17 +62,36 @@ create table if not exists public.price_snapshots (
   captured_at timestamptz default now()
 );
 
+create table if not exists public.pokemon_tcg_pull_rates (
+  id uuid primary key default gen_random_uuid(),
+  set_name text not null,
+  set_slug text not null,
+  rarity_name text not null,
+  rarity_slug text not null,
+  rarity_group text not null,
+  odds_one_in numeric not null check (odds_one_in > 0),
+  is_major_hit boolean default false,
+  is_premium_hit boolean default false,
+  source_note text,
+  is_active boolean default true,
+  created_at timestamptz default now(),
+  updated_at timestamptz default now(),
+  unique (set_slug, rarity_slug)
+);
+
 create index if not exists albums_user_id_idx on public.albums(user_id);
 create index if not exists user_cards_user_id_idx on public.user_cards(user_id);
 create index if not exists user_cards_album_id_idx on public.user_cards(album_id);
 create index if not exists expenses_user_id_date_idx on public.expenses(user_id, expense_date);
 create index if not exists price_snapshots_user_card_id_idx on public.price_snapshots(user_card_id);
+create index if not exists pokemon_tcg_pull_rates_active_set_idx on public.pokemon_tcg_pull_rates(is_active, set_slug);
 
 alter table public.profiles enable row level security;
 alter table public.albums enable row level security;
 alter table public.user_cards enable row level security;
 alter table public.expenses enable row level security;
 alter table public.price_snapshots enable row level security;
+alter table public.pokemon_tcg_pull_rates enable row level security;
 
 drop policy if exists "profiles_select_own" on public.profiles;
 create policy "profiles_select_own"
@@ -249,6 +268,12 @@ using (
   )
 );
 
+drop policy if exists "pokemon_tcg_pull_rates_select_active" on public.pokemon_tcg_pull_rates;
+create policy "pokemon_tcg_pull_rates_select_active"
+on public.pokemon_tcg_pull_rates for select
+to authenticated
+using (is_active = true);
+
 create schema if not exists private;
 
 create or replace function private.handle_new_user()
@@ -276,3 +301,57 @@ grant select, insert, update, delete on public.albums to authenticated;
 grant select, insert, update, delete on public.user_cards to authenticated;
 grant select, insert, update, delete on public.expenses to authenticated;
 grant select, insert, update, delete on public.price_snapshots to authenticated;
+grant select on public.pokemon_tcg_pull_rates to authenticated;
+
+insert into public.pokemon_tcg_pull_rates
+  (set_name, set_slug, rarity_name, rarity_slug, rarity_group, odds_one_in, is_major_hit, is_premium_hit, source_note)
+values
+  ('Fogo Fantasmagorico', 'fogo-fantasmagorico', 'Double Rare / ex', 'double_rare_ex', 'double_rare_ex', 5, true, false, 'Estimativa baseada em dados publicos/comunitarios.'),
+  ('Fogo Fantasmagorico', 'fogo-fantasmagorico', 'Ultra Rare', 'ultra_rare', 'ultra_rare', 12, true, false, 'Estimativa baseada em dados publicos/comunitarios.'),
+  ('Fogo Fantasmagorico', 'fogo-fantasmagorico', 'Illustration Rare', 'illustration_rare', 'illustration_rare', 9, true, false, 'Estimativa baseada em dados publicos/comunitarios.'),
+  ('Fogo Fantasmagorico', 'fogo-fantasmagorico', 'SIR/SAR', 'sir_sar', 'sir_sar', 80, true, true, 'Estimativa baseada em dados publicos/comunitarios.'),
+  ('Fogo Fantasmagorico', 'fogo-fantasmagorico', 'Mega Hyper Rare', 'mega_hyper_rare', 'mega_hyper_rare', 1260, true, true, 'Estimativa baseada em dados publicos/comunitarios.'),
+  ('Equilibrio Perfeito', 'equilibrio-perfeito', 'Double Rare / ex', 'double_rare_ex', 'double_rare_ex', 5, true, false, 'Estimativa baseada em dados publicos/comunitarios.'),
+  ('Equilibrio Perfeito', 'equilibrio-perfeito', 'Ultra Rare', 'ultra_rare', 'ultra_rare', 12, true, false, 'Estimativa baseada em dados publicos/comunitarios.'),
+  ('Equilibrio Perfeito', 'equilibrio-perfeito', 'Illustration Rare', 'illustration_rare', 'illustration_rare', 9, true, false, 'Estimativa baseada em dados publicos/comunitarios.'),
+  ('Equilibrio Perfeito', 'equilibrio-perfeito', 'SIR/SAR', 'sir_sar', 'sir_sar', 81, true, true, 'Estimativa baseada em dados publicos/comunitarios.'),
+  ('Equilibrio Perfeito', 'equilibrio-perfeito', 'Mega Hyper Rare', 'mega_hyper_rare', 'mega_hyper_rare', 1786, true, true, 'Estimativa baseada em dados publicos/comunitarios.'),
+  ('Amigos da Jornada', 'amigos-da-jornada', 'Double Rare / ex', 'double_rare_ex', 'double_rare_ex', 5, true, false, 'Estimativa baseada em dados publicos/comunitarios.'),
+  ('Amigos da Jornada', 'amigos-da-jornada', 'Ultra Rare', 'ultra_rare', 'ultra_rare', 15, true, false, 'Estimativa baseada em dados publicos/comunitarios.'),
+  ('Amigos da Jornada', 'amigos-da-jornada', 'Illustration Rare', 'illustration_rare', 'illustration_rare', 12, true, false, 'Estimativa baseada em dados publicos/comunitarios.'),
+  ('Amigos da Jornada', 'amigos-da-jornada', 'SIR/SAR', 'sir_sar', 'sir_sar', 86, true, true, 'Estimativa baseada em dados publicos/comunitarios.'),
+  ('Amigos da Jornada', 'amigos-da-jornada', 'Hyper Rare', 'hyper_rare', 'hyper_rare', 137, true, true, 'Estimativa baseada em dados publicos/comunitarios.'),
+  ('Rivais Predestinados', 'rivais-predestinados', 'Double Rare / ex', 'double_rare_ex', 'double_rare_ex', 5, true, false, 'Estimativa baseada em dados publicos/comunitarios.'),
+  ('Rivais Predestinados', 'rivais-predestinados', 'Ultra Rare', 'ultra_rare', 'ultra_rare', 16, true, false, 'Estimativa baseada em dados publicos/comunitarios.'),
+  ('Rivais Predestinados', 'rivais-predestinados', 'Illustration Rare', 'illustration_rare', 'illustration_rare', 12, true, false, 'Estimativa baseada em dados publicos/comunitarios.'),
+  ('Rivais Predestinados', 'rivais-predestinados', 'SIR/SAR', 'sir_sar', 'sir_sar', 94, true, true, 'Estimativa baseada em dados publicos/comunitarios.'),
+  ('Rivais Predestinados', 'rivais-predestinados', 'Hyper Rare', 'hyper_rare', 'hyper_rare', 149, true, true, 'Estimativa baseada em dados publicos/comunitarios.'),
+  ('Herois Excelsos', 'herois-excelsos', 'Double Rare / ex', 'double_rare_ex', 'double_rare_ex', 5, true, false, 'Estimativa baseada em dados publicos/comunitarios.'),
+  ('Herois Excelsos', 'herois-excelsos', 'Ultra Rare', 'ultra_rare', 'ultra_rare', 21, true, false, 'Estimativa baseada em dados publicos/comunitarios.'),
+  ('Herois Excelsos', 'herois-excelsos', 'Illustration Rare', 'illustration_rare', 'illustration_rare', 9, true, false, 'Estimativa baseada em dados publicos/comunitarios.'),
+  ('Herois Excelsos', 'herois-excelsos', 'SIR/SAR', 'sir_sar', 'sir_sar', 70, true, true, 'Estimativa baseada em dados publicos/comunitarios.'),
+  ('Herois Excelsos', 'herois-excelsos', 'Mega Hyper Rare', 'mega_hyper_rare', 'mega_hyper_rare', 540, true, true, 'Estimativa baseada em dados publicos/comunitarios.'),
+  ('Mega Evolucao', 'mega-evolucao', 'Double Rare / ex', 'double_rare_ex', 'double_rare_ex', 5, true, false, 'Estimativa baseada em dados publicos/comunitarios.'),
+  ('Mega Evolucao', 'mega-evolucao', 'Ultra Rare', 'ultra_rare', 'ultra_rare', 12, true, false, 'Estimativa baseada em dados publicos/comunitarios.'),
+  ('Mega Evolucao', 'mega-evolucao', 'Illustration Rare', 'illustration_rare', 'illustration_rare', 9, true, false, 'Estimativa baseada em dados publicos/comunitarios.'),
+  ('Mega Evolucao', 'mega-evolucao', 'SIR/SAR', 'sir_sar', 'sir_sar', 101, true, true, 'Estimativa baseada em dados publicos/comunitarios.'),
+  ('Mega Evolucao', 'mega-evolucao', 'Mega Hyper Rare', 'mega_hyper_rare', 'mega_hyper_rare', 1260, true, true, 'Estimativa baseada em dados publicos/comunitarios.'),
+  ('Raio Preto / Fogo Branco', 'raio-preto-fogo-branco', 'Double Rare / ex', 'double_rare_ex', 'double_rare_ex', 4.7, true, false, 'Estimativa baseada em dados publicos/comunitarios.'),
+  ('Raio Preto / Fogo Branco', 'raio-preto-fogo-branco', 'Ultra Rare', 'ultra_rare', 'ultra_rare', 17.2, true, false, 'Estimativa baseada em dados publicos/comunitarios.'),
+  ('Raio Preto / Fogo Branco', 'raio-preto-fogo-branco', 'Illustration Rare', 'illustration_rare', 'illustration_rare', 6.1, true, false, 'Estimativa baseada em dados publicos/comunitarios.'),
+  ('Raio Preto / Fogo Branco', 'raio-preto-fogo-branco', 'SIR/SAR', 'sir_sar', 'sir_sar', 80, true, true, 'Estimativa baseada em dados publicos/comunitarios.'),
+  ('Raio Preto / Fogo Branco', 'raio-preto-fogo-branco', 'Black White Rare', 'black_white_rare', 'black_white_rare', 496, true, true, 'Estimativa baseada em dados publicos/comunitarios.'),
+  ('Evolucoes Prismaticas', 'evolucoes-prismaticas', 'Double Rare / ex', 'double_rare_ex', 'double_rare_ex', 6.1, true, false, 'Estimativa baseada em dados publicos/comunitarios.'),
+  ('Evolucoes Prismaticas', 'evolucoes-prismaticas', 'Ultra Rare', 'ultra_rare', 'ultra_rare', 13.4, true, false, 'Estimativa baseada em dados publicos/comunitarios.'),
+  ('Evolucoes Prismaticas', 'evolucoes-prismaticas', 'SIR/SAR', 'sir_sar', 'sir_sar', 45, true, true, 'Estimativa baseada em dados publicos/comunitarios.'),
+  ('Evolucoes Prismaticas', 'evolucoes-prismaticas', 'Hyper Rare', 'hyper_rare', 'hyper_rare', 178.6, true, true, 'Estimativa baseada em dados publicos/comunitarios.')
+on conflict (set_slug, rarity_slug) do update set
+  set_name = excluded.set_name,
+  rarity_name = excluded.rarity_name,
+  rarity_group = excluded.rarity_group,
+  odds_one_in = excluded.odds_one_in,
+  is_major_hit = excluded.is_major_hit,
+  is_premium_hit = excluded.is_premium_hit,
+  source_note = excluded.source_note,
+  is_active = true,
+  updated_at = now();

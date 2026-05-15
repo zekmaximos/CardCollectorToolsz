@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { BarChart3, CreditCard, FolderOpen, LogOut, Search } from "lucide-react";
+import { BarChart3, Calculator, CreditCard, FolderOpen, LogOut, Search } from "lucide-react";
 import { signOut } from "@/app/actions";
 
 const links = [
@@ -7,6 +7,7 @@ const links = [
   { href: "/albums", label: "Albuns", icon: FolderOpen },
   { href: "/cards/search", label: "Buscar", icon: Search },
   { href: "/expenses", label: "Gastos", icon: CreditCard },
+  { href: "/pull-rate", label: "Calculadora", icon: Calculator },
   { href: "/reports", label: "Relatorios", icon: BarChart3 },
 ];
 
