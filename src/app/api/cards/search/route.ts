@@ -8,10 +8,11 @@ const MAX_RESULTS = 40;
 
 const languageConfig = {
   "Inglês": { code: "en", label: "Inglês", pricePriority: ["tcgplayer", "cardmarket"] },
-  "Português": { code: "pt-br", label: "Português", pricePriority: ["cardmarket", "tcgplayer"] },
+  "Português": { code: "pt-br", label: "Português (Brasil)", pricePriority: ["cardmarket", "tcgplayer"] },
+  "Português (Brasil)": { code: "pt-br", label: "Português (Brasil)", pricePriority: ["cardmarket", "tcgplayer"] },
   "Japonês": { code: "ja", label: "Japonês", pricePriority: ["cardmarket", "tcgplayer"] },
   en: { code: "en", label: "Inglês", pricePriority: ["tcgplayer", "cardmarket"] },
-  "pt-br": { code: "pt-br", label: "Português", pricePriority: ["cardmarket", "tcgplayer"] },
+  "pt-br": { code: "pt-br", label: "Português (Brasil)", pricePriority: ["cardmarket", "tcgplayer"] },
   ja: { code: "ja", label: "Japonês", pricePriority: ["cardmarket", "tcgplayer"] },
 } as const;
 
@@ -296,12 +297,13 @@ function pickPokemonTcgMarketPrice(card: PokemonTcgCard): MarketPrice {
 function normalizePokemonTcgCard(
   card: PokemonTcgCard,
   language: ReturnType<typeof resolveLanguage> = languageConfig.en,
+  referenceOnly = false,
 ) {
   const price = pickPokemonTcgMarketPrice(card);
 
   return {
     ...card,
-    source: "pokemontcg",
+    source: referenceOnly ? "pokemontcg_reference" : "pokemontcg",
     language: language.label,
     marketPrice: price
       ? {
@@ -315,6 +317,7 @@ function normalizePokemonTcgCard(
 async function searchPokemonTcg(
   query: string,
   language: ReturnType<typeof resolveLanguage> = languageConfig.en,
+  referenceOnly = false,
 ) {
   const upstreamUrl = new URL(POKEMON_TCG_BASE_URL);
   upstreamUrl.searchParams.set("q", buildPokemonTcgNameQuery(query));
@@ -337,7 +340,9 @@ async function searchPokemonTcg(
   }
 
   const payload = await response.json();
-  return ((payload.data ?? []) as PokemonTcgCard[]).map((card) => normalizePokemonTcgCard(card, language));
+  return ((payload.data ?? []) as PokemonTcgCard[]).map((card) =>
+    normalizePokemonTcgCard(card, language, referenceOnly),
+  );
 }
 
 function mergeCards(primary: ReturnType<typeof normalizePokemonTcgCard>[], secondary: ReturnType<typeof normalizeTcgDexCard>[]) {
@@ -376,12 +381,15 @@ export async function GET(request: Request) {
     }
 
     if (language.code === "pt-br") {
-      const [pokemonTcgResults, tcgDexResults] = await Promise.all([
-        searchPokemonTcg(query, language).catch(() => []),
-        searchTcgDex(query, language).catch(() => []),
-      ]);
+      const tcgDexResults = await searchTcgDex(query, language).catch(() => []);
 
-      return NextResponse.json({ data: mergeCards(pokemonTcgResults, tcgDexResults) });
+      if (tcgDexResults.length > 0) {
+        return NextResponse.json({ data: tcgDexResults });
+      }
+
+      return NextResponse.json({
+        data: await searchPokemonTcg(query, language, true).catch(() => []),
+      });
     }
 
     const tcgDexResults = await searchTcgDex(query, language);

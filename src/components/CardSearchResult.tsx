@@ -6,7 +6,7 @@ import { addCardToAlbum } from "@/app/actions";
 import { money } from "@/lib/format";
 import type { Album, PokemonCardApiResult } from "@/types";
 
-const languageOptions = ["Inglês", "Português", "Japonês"];
+const languageOptions = ["Inglês", "Português (Brasil)", "Japonês"];
 
 function priceDetails(card: PokemonCardApiResult) {
   if (card.marketPrice?.amount) {
@@ -37,6 +37,22 @@ function priceDetails(card: PokemonCardApiResult) {
     currency: "BRL",
     source: "",
   };
+}
+
+function sourceLabel(card: PokemonCardApiResult) {
+  if (card.source === "tcgdex") {
+    return card.language === "Português (Brasil)" ? "TCGdex PT-BR" : `TCGdex ${card.language ?? ""}`.trim();
+  }
+
+  if (card.source === "pokemontcg_reference") {
+    return "Referência em inglês";
+  }
+
+  if (card.source === "pokemontcg") {
+    return "Pokémon TCG API";
+  }
+
+  return "";
 }
 
 export function CardSearchResult({ albums }: { albums: Album[] }) {
@@ -190,6 +206,7 @@ export function CardSearchResult({ albums }: { albums: Album[] }) {
                 {money(priceDetails(card).amount, priceDetails(card).currency)}
               </p>
               {priceDetails(card).source ? <p className="text-xs text-slate-500">{priceDetails(card).source}</p> : null}
+              {sourceLabel(card) ? <p className="text-xs font-semibold text-slate-500">{sourceLabel(card)}</p> : null}
             </div>
             <button
               disabled={!hasAlbums}

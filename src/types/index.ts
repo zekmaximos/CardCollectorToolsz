@@ -2,7 +2,7 @@ export type PokemonCardApiResult = {
   id: string;
   name: string;
   language?: string | null;
-  source?: "pokemontcg" | "tcgdex";
+  source?: "pokemontcg" | "pokemontcg_reference" | "tcgdex";
   number?: string | null;
   rarity?: string | null;
   marketPrice?: {
