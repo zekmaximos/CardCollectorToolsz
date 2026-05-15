@@ -70,6 +70,11 @@ export type Expense = {
   category: "booster" | "box" | "carta_avulsa" | "acessorio" | "outro" | string;
   item_name: string;
   amount: number;
+  quantity: number | null;
+  unit_amount: number | null;
+  has_hit: boolean | null;
+  hit_type: string | null;
+  hit_notes: string | null;
   notes: string | null;
   created_at: string;
 };

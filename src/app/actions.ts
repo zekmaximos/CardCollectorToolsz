@@ -194,7 +194,10 @@ export async function removeUserCard(formData: FormData): Promise<void> {
 export async function createExpense(formData: FormData): Promise<void> {
   const { supabase, user } = await requireUser();
   const itemName = String(formData.get("item_name") ?? "").trim();
-  const amount = numberValue(formData.get("amount"));
+  const quantity = Math.max(1, Math.trunc(numberValue(formData.get("quantity")) || 1));
+  const unitAmount = numberValue(formData.get("unit_amount"));
+  const legacyAmount = numberValue(formData.get("amount"));
+  const amount = unitAmount > 0 ? unitAmount * quantity : legacyAmount;
 
   if (!itemName || amount <= 0) {
     return;
@@ -206,6 +209,11 @@ export async function createExpense(formData: FormData): Promise<void> {
     category: String(formData.get("category") ?? "outro"),
     item_name: itemName,
     amount,
+    quantity,
+    unit_amount: unitAmount > 0 ? unitAmount : amount,
+    has_hit: formData.get("has_hit") === "true",
+    hit_type: nullableText(formData.get("hit_type")),
+    hit_notes: nullableText(formData.get("hit_notes")),
     notes: nullableText(formData.get("notes")),
   });
 

@@ -54,24 +54,43 @@ export default async function ExpensesPage() {
         <EmptyState title="Nenhum gasto registrado" description="Quando voce cadastrar compras e acessorios, os totais aparecem aqui." />
       ) : (
         <div className="overflow-hidden rounded-lg border border-slate-200 bg-white shadow-sm">
-          <table className="w-full text-left text-sm">
+          <table className="w-full min-w-[760px] text-left text-sm">
             <thead className="bg-slate-100 text-slate-600">
               <tr>
                 <th className="px-4 py-3">Data</th>
                 <th className="px-4 py-3">Categoria</th>
                 <th className="px-4 py-3">Item</th>
-                <th className="px-4 py-3">Valor</th>
+                <th className="px-4 py-3">Qtd</th>
+                <th className="px-4 py-3">Unitario</th>
+                <th className="px-4 py-3">Hit</th>
+                <th className="px-4 py-3">Total</th>
               </tr>
             </thead>
             <tbody>
-              {expenses.map((expense) => (
-                <tr key={expense.id} className="border-t border-slate-100">
-                  <td className="px-4 py-3">{expense.expense_date}</td>
-                  <td className="px-4 py-3">{expense.category}</td>
-                  <td className="px-4 py-3">{expense.item_name}</td>
-                  <td className="px-4 py-3 font-semibold">{money(expense.amount)}</td>
-                </tr>
-              ))}
+              {expenses.map((expense) => {
+                const quantity = Number(expense.quantity ?? 1);
+                const unitAmount = Number(expense.unit_amount ?? expense.amount);
+                const hitLabel = expense.category === "booster"
+                  ? expense.has_hit
+                    ? expense.hit_type ?? "Hit"
+                    : "Sem hit"
+                  : "-";
+
+                return (
+                  <tr key={expense.id} className="border-t border-slate-100 align-top">
+                    <td className="px-4 py-3">{expense.expense_date}</td>
+                    <td className="px-4 py-3">{expense.category}</td>
+                    <td className="px-4 py-3">
+                      <div className="font-medium text-slate-950">{expense.item_name}</div>
+                      {expense.hit_notes ? <div className="mt-1 text-xs text-slate-500">{expense.hit_notes}</div> : null}
+                    </td>
+                    <td className="px-4 py-3">{quantity}</td>
+                    <td className="px-4 py-3">{money(unitAmount)}</td>
+                    <td className="px-4 py-3">{hitLabel}</td>
+                    <td className="px-4 py-3 font-semibold">{money(expense.amount)}</td>
+                  </tr>
+                );
+              })}
             </tbody>
           </table>
         </div>

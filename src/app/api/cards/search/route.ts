@@ -345,9 +345,13 @@ async function searchPokemonTcg(
   );
 }
 
-function mergeCards(primary: ReturnType<typeof normalizePokemonTcgCard>[], secondary: ReturnType<typeof normalizeTcgDexCard>[]) {
+type NormalizedSearchCard =
+  | ReturnType<typeof normalizePokemonTcgCard>
+  | ReturnType<typeof normalizeTcgDexCard>;
+
+function mergeCards(primary: NormalizedSearchCard[], secondary: NormalizedSearchCard[]) {
   const seen = new Set<string>();
-  const merged = [];
+  const merged: NormalizedSearchCard[] = [];
 
   for (const card of [...primary, ...secondary]) {
     if (seen.has(card.id)) {
@@ -365,6 +369,7 @@ export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
   const query = searchParams.get("q")?.trim();
   const language = resolveLanguage(searchParams.get("lang"));
+  const includeReferences = searchParams.get("includeReferences") === "true";
 
   if (!query) {
     return NextResponse.json({ error: "Informe um termo de busca." }, { status: 400 });
@@ -383,8 +388,13 @@ export async function GET(request: Request) {
     if (language.code === "pt-br") {
       const tcgDexResults = await searchTcgDex(query, language).catch(() => []);
 
-      if (tcgDexResults.length > 0) {
+      if (tcgDexResults.length > 0 && !includeReferences) {
         return NextResponse.json({ data: tcgDexResults });
+      }
+
+      if (tcgDexResults.length > 0) {
+        const referenceResults = await searchPokemonTcg(query, language, true).catch(() => []);
+        return NextResponse.json({ data: mergeCards(tcgDexResults, referenceResults) });
       }
 
       return NextResponse.json({

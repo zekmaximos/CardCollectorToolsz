@@ -44,6 +44,11 @@ create table if not exists public.expenses (
   category text not null check (category in ('booster', 'box', 'carta_avulsa', 'acessorio', 'outro')),
   item_name text not null,
   amount numeric not null check (amount >= 0),
+  quantity integer default 1 check (quantity > 0),
+  unit_amount numeric,
+  has_hit boolean default false,
+  hit_type text,
+  hit_notes text,
   notes text,
   created_at timestamptz default now()
 );

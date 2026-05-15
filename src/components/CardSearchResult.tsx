@@ -58,6 +58,7 @@ function sourceLabel(card: PokemonCardApiResult) {
 export function CardSearchResult({ albums }: { albums: Album[] }) {
   const [query, setQuery] = useState("");
   const [selectedLanguage, setSelectedLanguage] = useState(languageOptions[0]);
+  const [includeReferences, setIncludeReferences] = useState(false);
   const [cards, setCards] = useState<PokemonCardApiResult[]>([]);
   const [error, setError] = useState("");
   const [selectedCard, setSelectedCard] = useState<PokemonCardApiResult | null>(null);
@@ -78,7 +79,7 @@ export function CardSearchResult({ albums }: { albums: Album[] }) {
     startTransition(async () => {
       try {
         const response = await fetch(
-          `/api/cards/search?q=${encodeURIComponent(q)}&lang=${encodeURIComponent(selectedLanguage)}`,
+          `/api/cards/search?q=${encodeURIComponent(q)}&lang=${encodeURIComponent(selectedLanguage)}&includeReferences=${includeReferences}`,
         );
         const payload = await response.json();
         if (!response.ok) {
@@ -130,6 +131,15 @@ export function CardSearchResult({ albums }: { albums: Album[] }) {
           <Search className="size-4" />
           {isPending ? "Buscando..." : "Buscar"}
         </button>
+        <label className="flex min-h-11 items-center gap-2 rounded-md border border-slate-200 px-3 py-2 text-sm text-slate-700 md:col-span-3">
+          <input
+            type="checkbox"
+            checked={includeReferences}
+            onChange={(event) => setIncludeReferences(event.target.checked)}
+            className="size-4 rounded border-slate-300"
+          />
+          Mostrar referencias em ingles quando faltar no PT-BR
+        </label>
       </form>
 
       {error ? <p className="rounded-md border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">{error}</p> : null}
